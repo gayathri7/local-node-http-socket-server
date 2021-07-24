@@ -10,13 +10,21 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   console.log('--------A User Connected-----');
-  socket.on('chat message', msg => {
-    console.log("-------------chat message---------", msg)
-    io.emit('chat message', msg);
-  });
-  socket.on('gayidata',(data) => {
-    console.log('-----------gayi data event----', data);
-    io.emit('gayidata', data)
+  socket.onAny((event, ...args) => {
+    console.log('-----------onAny----', event, args);
+    if(args[0] && args[0].val) {
+      var type = args[0].type;
+      var newVal = args[0].val;
+      if(type === 'json') {
+        try{
+          newVal = JSON.parse(newVal)
+        }catch(error) {
+          console.error("-----------newValue----parse error- ", error);
+          newVal = {data: newVal}
+        }
+      }
+      io.emit(event, newVal)
+    }
   })
   socket.on('disconnect',() => {
     console.log('--------A User DisConnected-------')

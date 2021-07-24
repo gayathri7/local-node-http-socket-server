@@ -9,16 +9,35 @@
       #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
       #input:focus { outline: none; }
       #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
-
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages > li { padding: 0.5rem 1rem; }
-      #messages > li:nth-child(odd) { background: #efefef; }
+      table, th, td {
+        border: 1px solid black;
+      }
+      #eventTable {
+          position: fixed;
+          top: 0px;
+          background-color:white;
+      }
+      .tableHeader {
+        background-color: lightgray;
+      }
     </style>
   </head>
   <body>
-    <ul id="messages"></ul>
+    <table id="eventTable">
+      <tr class="tableHeader">
+        <th>Event Name</th>
+        <th>Event Data</th>
+      </tr>
+      </table>
+      <ul id="messages" title="Event Messages" hidden></ul>
     <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Send</button>
+      <input id="eventName" placeholder="Event Name"/>
+      <select id="eventType" name="Types">
+        <option value="text">Text</option>
+        <option value="string">String</option>
+        <option value="json">JSON</option>
+      </select>
+      <input id="input" placeholder="Event Data" autocomplete="off" /><button>Send</button>
     </form>
     <script src="/socket.io/socket.io.js"></script>
 
@@ -27,22 +46,38 @@
 
       var messages = document.getElementById('messages');
       var form = document.getElementById('form');
+      var eventName = document.getElementById('eventName');
+      var eventType = document.getElementById('eventType')
       var input = document.getElementById('input');
 
       form.addEventListener('submit', function(e) {
         e.preventDefault();
         if (input.value) {
-          socket.emit('gayidata', {'data': input.value});
-          socket.emit('chat message', input.value);
+          var emittedValue = input.value;
+          socket.emit(eventName.value, {type: eventType.value, val: emittedValue})
           input.value = '';
+          eventName.value = '';
+          eventType.value = 'text';
         }
       });
 
-      socket.on('chat message', function(msg) {
-        var item = document.createElement('li');
-        item.textContent = msg;
-        messages.appendChild(item);
-        window.scrollTo(0, document.body.scrollHeight);
+      socket.onAny((event, ...args)=> {
+        var eventItem = document.createElement('li');
+        eventItem.textContent = event;
+        messages.appendChild(eventItem);
+        var innerUl = document.createElement('ul');
+        eventItem.appendChild(innerUl)
+        var eventData = document.createElement('li');
+        eventData.textContent = args[0];
+        innerUl.appendChild(eventData);
+
+        var table = document.getElementById("eventTable");
+        var row = table.insertRow(-1);
+        var cell1 = row.insertCell(0);
+        var cell2 = row.insertCell(1);
+        cell1.innerHTML = event;
+        cell2.innerHTML = typeof args[0] === 'object' ? JSON.stringify(args[0]) : args[0];
+        window.scrollTo(-1, document.body.scrollHeight);
       });
     </script>
   </body>
